@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>手心花園｜手部復健訓練</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #F1F5F0;
+    --surface: #FFFFFF;
+    --ink: #1F3A34;
+    --ink-soft: #4B655F;
+    --leaf: #6FA287;
+    --leaf-dark: #4C7A63;
+    --amber: #E3A857;
+    --amber-dark: #C98A38;
+    --coral: #E2735C;
+    --line: #DDE7DD;
+    --shadow: 0 8px 24px rgba(31,58,52,0.10);
+    --radius: 22px;
+    --font-display: 'Noto Sans TC', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html,body{
+    margin:0; padding:0; height:100%; background:var(--bg); color:var(--ink);
+    font-family: var(--font-display);
+    overscroll-behavior: none;
+  }
+  body.large-text { font-size: 112%; }
+  #app{ min-height:100vh; display:flex; flex-direction:column; }
+  .view{ display:none; flex-direction:column; flex:1; padding: 20px 20px 32px; max-width: 760px; margin:0 auto; width:100%; }
+  .view.active{ display:flex; }
+
+  /* ---------- Header ---------- */
+  .topbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 8px; }
+  .backbtn{
+    border:none; background: var(--surface); color:var(--ink); font-weight:700; font-size:16px;
+    padding:10px 18px; border-radius: 999px; box-shadow: var(--shadow); cursor:pointer;
+  }
+  .iconbtn{
+    border:none; background: var(--surface); width:48px; height:48px; border-radius:50%;
+    box-shadow: var(--shadow); font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  h1.brand{ font-size:26px; font-weight:900; margin:4px 0 0; letter-spacing:0.5px; }
+  .sub{ color:var(--ink-soft); font-size:15px; margin:2px 0 18px; }
+
+  /* ---------- Garden / progress ---------- */
+  .garden-card{
+    background: linear-gradient(180deg,#E7F0E4 0%, var(--surface) 65%);
+    border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px 20px 10px;
+    display:flex; align-items:center; gap:18px; margin-bottom:22px;
+  }
+  .garden-svg{ width:96px; height:96px; flex-shrink:0; }
+  .garden-stats{ flex:1; }
+  .garden-stats .big{ font-family: var(--font-mono); font-size:30px; font-weight:700; color:var(--leaf-dark); line-height:1; }
+  .garden-stats .lbl{ font-size:13px; color:var(--ink-soft); margin-top:4px; }
+  .garden-stats .today{ margin-top:10px; font-size:14px; color:var(--ink); }
+
+  /* ---------- Exercise cards ---------- */
+  .cards{ display:flex; flex-direction:column; gap:14px; }
+  .card{
+    background:var(--surface); border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 18px 20px; display:flex; align-items:center; gap:16px; cursor:pointer; border:none; text-align:left;
+    transition: transform .12s ease;
+  }
+  .card:active{ transform: scale(0.98); }
+  .card .emoji{ font-size:34px; width:56px; text-align:center; }
+  .card .info{ flex:1; }
+  .card .info h3{ margin:0 0 4px; font-size:19px; }
+  .card .info p{ margin:0; font-size:13.5px; color:var(--ink-soft); line-height:1.4; }
+  .card .arrow{ font-size:22px; color:var(--leaf-dark); }
+
+  .disclaimer{
+    margin-top: 22px; font-size:12.5px; color:var(--ink-soft); background:#FBF6EC; border:1px solid #EEDFC0;
+    border-radius:14px; padding:12px 14px; line-height:1.6;
+  }
+
+  /* ---------- Exercise screen shared ---------- */
+  .exercise-title{ font-size:22px; font-weight:900; margin: 4px 0 2px; }
+  .exercise-desc{ font-size:14px; color:var(--ink-soft); margin-bottom:14px; line-height:1.6; }
+  .stage-panel{
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px 16px;
+    position:relative; min-height: 340px; touch-action: none; user-select:none;
+  }
+  .rep-counter{
+    position:absolute; top:16px; right:18px; font-family:var(--font-mono); font-weight:700; font-size:15px;
+    background: var(--bg); padding:6px 12px; border-radius:999px; color:var(--ink);
+  }
+  .status-msg{ margin-top:18px; font-size:16px; font-weight:700; min-height: 24px; color:var(--leaf-dark); }
+  .controls-row{ display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+  .btn{
+    border:none; border-radius:999px; padding:14px 22px; font-size:15px; font-weight:700; cursor:pointer;
+    box-shadow: var(--shadow); font-family: var(--font-display);
+  }
+  .btn-primary{ background: var(--leaf-dark); color:#fff; }
+  .btn-secondary{ background: var(--surface); color:var(--ink); }
+  .btn-amber{ background: var(--amber); color:#4A3110; }
+  .btn:disabled{ opacity:0.5; }
+  .permission-note{
+    background:#FDF3E9; border:1px solid #F0DCB8; border-radius:14px; padding:12px 14px; font-size:13.5px;
+    color:#7A5A24; margin-top:14px; line-height:1.6;
+  }
+
+  /* wrist dial */
+  .dial-wrap{ position:relative; width:240px; height:240px; }
+  svg.dial{ width:100%; height:100%; overflow:visible; }
+  .dial-needle{ transform-origin: 120px 120px; transition: transform .05s linear; }
+
+  /* grip */
+  .grip-visual{ width:200px; height:200px; border-radius:50%; background: radial-gradient(circle at 35% 30%, #9BC6A9, var(--leaf-dark));
+    display:flex; align-items:center; justify-content:center; transition: transform .05s ease-out; box-shadow: inset 0 -10px 20px rgba(0,0,0,0.15); }
+  .grip-visual span{ font-size:44px; }
+  .grip-bar-wrap{ width:220px; height:14px; background:var(--bg); border-radius:999px; margin-top:22px; overflow:hidden; }
+  .grip-bar{ height:100%; width:0%; background: var(--amber); border-radius:999px; transition: width .05s ease-out; }
+
+  /* elbow */
+  .elbow-visual{ width:260px; height:200px; position:relative; }
+
+  /* settings modal */
+  .modal-backdrop{ position:fixed; inset:0; background:rgba(31,58,52,0.35); display:none; align-items:flex-end; justify-content:center; z-index:50; }
+  .modal-backdrop.active{ display:flex; }
+  .modal-sheet{ background:var(--surface); border-radius: 24px 24px 0 0; width:100%; max-width:760px; padding:22px 22px 30px; box-shadow: 0 -8px 30px rgba(0,0,0,0.2); }
+  .modal-sheet h2{ margin:0 0 16px; font-size:20px; }
+  .setting-row{ display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--line); }
+  .setting-row:last-child{ border-bottom:none; }
+  .setting-row .label{ font-size:15px; }
+  .stepper{ display:flex; align-items:center; gap:10px; }
+  .stepper button{ width:36px; height:36px; border-radius:50%; border:none; background:var(--bg); font-size:18px; font-weight:700; cursor:pointer; }
+  .stepper .val{ font-family:var(--font-mono); font-weight:700; min-width:30px; text-align:center; }
+  .toggle{ width:50px; height:28px; border-radius:999px; background:var(--line); position:relative; cursor:pointer; border:none; }
+  .toggle.on{ background:var(--leaf); }
+  .toggle::after{ content:''; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; transition: transform .15s ease; }
+  .toggle.on::after{ transform: translateX(22px); }
+
+  .mode-toggle{ display:flex; gap:8px; margin-bottom:10px; }
+  .mode-toggle button{ flex:1; padding:8px 10px; border-radius:12px; border:1px solid var(--line); background:var(--surface); font-size:13px; font-weight:700; cursor:pointer; color:var(--ink-soft); }
+  .mode-toggle button.active{ background: var(--leaf-dark); color:#fff; border-color:var(--leaf-dark); }
+
+  .done-panel{ text-align:center; }
+  .done-panel .big-emoji{ font-size:56px; }
+  .done-panel h2{ margin: 6px 0 4px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ HOME ============ -->
+  <section class="view active" id="view-home">
+    <div class="topbar">
+      <div>
+        <h1 class="brand">🌿 手心花園</h1>
+        <div class="sub">每天一點練習，慢慢長大</div>
+      </div>
+      <button class="iconbtn" onclick="openSettings()">⚙️</button>
+    </div>
+
+    <div class="garden-card">
+      <svg class="garden-svg" id="gardenSvg" viewBox="0 0 100 100"></svg>
+      <div class="garden-stats">
+        <div class="big" id="totalRepsLabel">0</div>
+        <div class="lbl">累積訓練次數</div>
+        <div class="today" id="todayLabel">今天還沒開始練習</div>
+      </div>
+    </div>
+
+    <div class="cards">
+      <button class="card" onclick="enterExercise('wrist')">
+        <div class="emoji">🔄</div>
+        <div class="info">
+          <h3>手腕轉動</h3>
+          <p>握住平板，像轉方向盤一樣慢慢轉動手腕</p>
+        </div>
+        <div class="arrow">›</div>
+      </button>
+      <button class="card" onclick="enterExercise('grip')">
+        <div class="emoji">🤏</div>
+        <div class="info">
+          <h3>手指抓握力</h3>
+          <p>用拇指與食指在螢幕上捏合、放開，練習抓握</p>
+        </div>
+        <div class="arrow">›</div>
+      </button>
+      <button class="card" onclick="enterExercise('elbow')">
+        <div class="emoji">💪</div>
+        <div class="info">
+          <h3>手肘伸展</h3>
+          <p>握住平板向前伸直手臂，再收回，練習伸展</p>
+        </div>
+        <div class="arrow">›</div>
+      </button>
+    </div>
+
+    <div class="disclaimer">
+      ⚠️ 本工具為輔助自主訓練之互動遊戲，並非醫療診斷或治療器材，訓練強度與次數請依醫師或治療師指示調整。若練習中感到疼痛、頭暈或不適，請立即停止並休息，必要時洽詢專業醫療人員。
+    </div>
+  </section>
+
+  <!-- ============ WRIST ============ -->
+  <section class="view" id="view-wrist">
+    <div class="topbar">
+      <button class="backbtn" onclick="goHome()">‹ 返回</button>
+      <button class="iconbtn" onclick="openSettings()">⚙️</button>
+    </div>
+    <div class="exercise-title">🔄 手腕轉動</div>
+    <div class="exercise-desc">雙手平穩握住平板（可平放於腿上或桌面上），像轉方向盤一樣，慢慢把手腕向左轉、再向右轉，讓指針落入亮起的區域。</div>
+
+    <div class="mode-toggle">
+      <button id="wristModeSensor" class="active" onclick="setWristMode('sensor')">📱 感測器模式（旋轉平板）</button>
+      <button id="wristModeManual" onclick="setWristMode('manual')">✋ 手動模式（手指拖曳）</button>
+    </div>
+
+    <div class="stage-panel" id="wristPanel">
+      <div class="rep-counter"><span id="wristReps">0</span> / <span id="wristTarget">10</span> 次</div>
+      <div class="dial-wrap">
+        <svg class="dial" viewBox="0 0 240 240" id="wristDialSvg"></svg>
+      </div>
+      <div class="status-msg" id="wristStatus">請先按下方按鈕啟用感測器</div>
+      <div style="font-size:12px;color:#9AA9A3;margin-top:2px;" id="wristDebug">尚未收到感測器資料</div>
+      <div class="permission-note" id="wristTimeoutWarning" style="display:none;background:#FBEAE6;border-color:#EFC2B6;color:#8A3B27;">
+        已啟用 3 秒但沒有收到任何感測器資料。最常見原因是這個網頁不是用 https:// 開啟（例如直接雙擊檔案，網址開頭是 file://）。手機瀏覽器基於安全考量，只有在 https 網址下才會提供旋轉角度資料。建議先切換到「手動模式」練習，或把檔案架到有 https 的網頁空間（跟我說一聲，我可以教你怎麼做）。
+      </div>
+      <div class="permission-note" id="wristPermNote">
+        平板需要授權才能讀取旋轉角度。按「啟用感測器」後，如有跳出授權視窗請選擇「允許」。
+      </div>
+      <div class="controls-row">
+        <button class="btn btn-amber" id="wristEnableBtn" onclick="enableWristSensor()">啟用感測器</button>
+        <button class="btn btn-secondary" onclick="calibrate('wrist')">校正中心點</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ GRIP ============ -->
+  <section class="view" id="view-grip">
+    <div class="topbar">
+      <button class="backbtn" onclick="goHome()">‹ 返回</button>
+      <button class="iconbtn" onclick="openSettings()">⚙️</button>
+    </div>
+    <div class="exercise-title">🤏 手指抓握力</div>
+    <div class="exercise-desc">用拇指與食指放在下方圓球的兩側，慢慢捏合直到球變小，再慢慢放開回到原大小，完成一次完整的抓握。</div>
+
+    <div class="stage-panel" id="gripPanel">
+      <div class="rep-counter"><span id="gripReps">0</span> / <span id="gripTarget">10</span> 次</div>
+      <div class="grip-visual" id="gripVisual"><span>🖐️</span></div>
+      <div class="grip-bar-wrap"><div class="grip-bar" id="gripBar"></div></div>
+      <div class="status-msg" id="gripStatus">請用兩指在球上捏合看看</div>
+      <div class="controls-row">
+        <button class="btn btn-secondary" onclick="resetExerciseCounter('grip')">重新開始這一輪</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ELBOW ============ -->
+  <section class="view" id="view-elbow">
+    <div class="topbar">
+      <button class="backbtn" onclick="goHome()">‹ 返回</button>
+      <button class="iconbtn" onclick="openSettings()">⚙️</button>
+    </div>
+    <div class="exercise-title">💪 手肘伸展</div>
+    <div class="exercise-desc">雙手握住平板放在胸前，手肘彎曲。接著慢慢把手臂向前伸直，讓箭頭碰到目標線，再慢慢收回胸前，完成一次伸展。</div>
+
+    <div class="mode-toggle">
+      <button id="elbowModeSensor" class="active" onclick="setElbowMode('sensor')">📱 感測器模式（伸手臂）</button>
+      <button id="elbowModeManual" onclick="setElbowMode('manual')">✋ 手動模式（拖曳箭頭）</button>
+    </div>
+
+    <div class="stage-panel" id="elbowPanel">
+      <div class="rep-counter"><span id="elbowReps">0</span> / <span id="elbowTarget">10</span> 次</div>
+      <div class="elbow-visual">
+        <svg viewBox="0 0 260 200" width="100%" height="100%" id="elbowSvg"></svg>
+      </div>
+      <div class="status-msg" id="elbowStatus">請先按下方按鈕啟用感測器</div>
+      <div style="font-size:12px;color:#9AA9A3;margin-top:2px;" id="elbowDebug">尚未收到感測器資料</div>
+      <div class="permission-note" id="elbowTimeoutWarning" style="display:none;background:#FBEAE6;border-color:#EFC2B6;color:#8A3B27;">
+        已啟用 3 秒但沒有收到任何感測器資料。最常見原因是這個網頁不是用 https:// 開啟（例如直接雙擊檔案，網址開頭是 file://）。手機瀏覽器基於安全考量，只有在 https 網址下才會提供傾斜角度資料。建議先切換到「手動模式」練習，或把檔案架到有 https 的網頁空間（跟我說一聲，我可以教你怎麼做）。
+      </div>
+      <div class="permission-note" id="elbowPermNote">
+        平板需要授權才能讀取傾斜角度。按「啟用感測器」後，如有跳出授權視窗請選擇「允許」。
+      </div>
+      <div class="controls-row">
+        <button class="btn btn-amber" id="elbowEnableBtn" onclick="enableElbowSensor()">啟用感測器</button>
+        <button class="btn btn-secondary" onclick="calibrate('elbow')">校正起始點（胸前彎曲姿勢）</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DONE ============ -->
+  <section class="view" id="view-done">
+    <div class="stage-panel done-panel">
+      <div class="big-emoji">🌼</div>
+      <h2>完成這一輪！</h2>
+      <p id="doneSummary" style="color:var(--ink-soft);"></p>
+      <div class="controls-row">
+        <button class="btn btn-primary" onclick="goHome()">回到花園</button>
+        <button class="btn btn-secondary" id="doneAgainBtn">再練一輪</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ============ SETTINGS MODAL ============ -->
+<div class="modal-backdrop" id="settingsBackdrop" onclick="if(event.target===this) closeSettings()">
+  <div class="modal-sheet">
+    <h2>訓練設定</h2>
+    <div class="setting-row">
+      <div class="label">手腕轉動 — 每輪目標次數</div>
+      <div class="stepper">
+        <button onclick="changeTarget('wrist',-1)">−</button>
+        <div class="val" id="targetVal_wrist">10</div>
+        <button onclick="changeTarget('wrist',1)">+</button>
+      </div>
+    </div>
+    <div class="setting-row">
+      <div class="label">抓握力 — 每輪目標次數</div>
+      <div class="stepper">
+        <button onclick="changeTarget('grip',-1)">−</button>
+        <div class="val" id="targetVal_grip">10</div>
+        <button onclick="changeTarget('grip',1)">+</button>
+      </div>
+    </div>
+    <div class="setting-row">
+      <div class="label">手肘伸展 — 每輪目標次數</div>
+      <div class="stepper">
+        <button onclick="changeTarget('elbow',-1)">−</button>
+        <div class="val" id="targetVal_elbow">10</div>
+        <button onclick="changeTarget('elbow',1)">+</button>
+      </div>
+    </div>
+    <div class="setting-row">
+      <div class="label">大字體模式</div>
+      <button class="toggle" id="largeTextToggle" onclick="toggleLargeText()"></button>
+    </div>
+    <div class="setting-row">
+      <div class="label">完成提示音</div>
+      <button class="toggle on" id="soundToggle" onclick="toggleSound()"></button>
+    </div>
+    <div class="controls-row" style="margin-top:16px;">
+      <button class="btn btn-primary" onclick="closeSettings()" style="flex:1;">完成</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================== 狀態與儲存 ===================== */
+const DEFAULT_TARGETS = { wrist:10, grip:10, elbow:10 };
+let progress = {
+  totalReps: 0,
+  today: {}, // { 'YYYY-MM-DD': {wrist:n, grip:n, elbow:n} }
+  targets: {...DEFAULT_TARGETS},
+  largeText: false,
+  sound: true
+};
+let currentExercise = null;
+let sessionReps = { wrist:0, grip:0, elbow:0 };
+
+function todayKey(){ return new Date().toISOString().slice(0,10); }
+
+async function loadProgress(){
+  try{
+    const res = await window.storage.get('palmgarden:progress');
+    if(res && res.value){
+      const loaded = JSON.parse(res.value);
+      progress = Object.assign(progress, loaded);
+    }
+  }catch(e){ /* 尚未有資料，使用預設值 */ }
+  applySettingsToUI();
+  renderHome();
+}
+async function saveProgress(){
+  try{ await window.storage.set('palmgarden:progress', JSON.stringify(progress)); }
+  catch(e){ console.error('儲存失敗', e); }
+}
+
+/* ===================== 導覽 ===================== */
+function showView(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function goHome(){
+  stopAllSensors();
+  showView('view-home');
+  renderHome();
+}
+function enterExercise(name){
+  currentExercise = name;
+  sessionReps[name] = 0;
+  showView('view-'+name);
+  if(name==='wrist'){ updateWristUI(); drawWristDial(); }
+  if(name==='grip'){ updateGripUI(); }
+  if(name==='elbow'){ updateElbowUI(); drawElbowSvg(0); }
+}
+function resetExerciseCounter(name){
+  sessionReps[name] = 0;
+  if(name==='wrist') updateWristUI();
+  if(name==='grip') updateGripUI();
+  if(name==='elbow') updateElbowUI();
+}
+
+/* ===================== 首頁花園渲染 ===================== */
+function renderHome(){
+  document.getElementById('totalRepsLabel').textContent = progress.totalReps;
+  const t = progress.today[todayKey()];
+  const sum = t ? (t.wrist||0)+(t.grip||0)+(t.elbow||0) : 0;
+  document.getElementById('todayLabel').textContent = sum>0 ? `今天已完成 ${sum} 次練習，做得很好` : '今天還沒開始練習';
+  drawGardenSvg();
+}
+function gardenStage(){
+  const r = progress.totalReps;
+  if(r < 50) return 0;
+  if(r < 150) return 1;
+  if(r < 350) return 2;
+  if(r < 700) return 3;
+  return 4;
+}
+function drawGardenSvg(){
+  const svg = document.getElementById('gardenSvg');
+  const stage = gardenStage();
+  const pot = `<path d="M35 88 L65 88 L60 100 L40 100 Z" fill="#C98A38"/><rect x="30" y="82" width="40" height="8" rx="3" fill="#E3A857"/>`;
+  let plant = '';
+  if(stage===0){
+    plant = `<circle cx="50" cy="80" r="4" fill="#6FA287"/>`;
+  } else if(stage===1){
+    plant = `<path d="M50 82 C50 65 50 60 50 55" stroke="#6FA287" stroke-width="4" fill="none" stroke-linecap="round"/>
+              <path d="M50 62 C42 58 40 52 42 48" stroke="#6FA287" stroke-width="4" fill="none" stroke-linecap="round"/>`;
+  } else if(stage===2){
+    plant = `<path d="M50 82 C50 55 50 45 50 35" stroke="#4C7A63" stroke-width="5" fill="none" stroke-linecap="round"/>
+              <path d="M50 60 C36 54 32 44 36 38" stroke="#6FA287" stroke-width="5" fill="none" stroke-linecap="round"/>
+              <path d="M50 45 C64 40 68 30 64 24" stroke="#6FA287" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+  } else if(stage===3){
+    plant = `<path d="M50 82 C50 50 50 35 50 22" stroke="#4C7A63" stroke-width="5" fill="none" stroke-linecap="round"/>
+              <path d="M50 58 C34 52 30 40 34 34" stroke="#6FA287" stroke-width="5" fill="none" stroke-linecap="round"/>
+              <path d="M50 40 C66 34 70 22 66 16" stroke="#6FA287" stroke-width="5" fill="none" stroke-linecap="round"/>
+              <circle cx="50" cy="18" r="7" fill="#E3A857"/>`;
+  } else {
+    plant = `<path d="M50 82 C50 45 50 30 50 16" stroke="#4C7A63" stroke-width="6" fill="none" stroke-linecap="round"/>
+              <path d="M50 55 C30 48 26 32 32 24" stroke="#6FA287" stroke-width="5" fill="none" stroke-linecap="round"/>
+              <path d="M50 42 C70 36 76 20 70 12" stroke="#6FA287" stroke-width="5" fill="none" stroke-linecap="round"/>
+              <path d="M50 26 C40 20 38 10 44 6" stroke="#6FA287" stroke-width="4" fill="none" stroke-linecap="round"/>
+              <circle cx="50" cy="12" r="8" fill="#E3A857"/>
+              <circle cx="34" cy="22" r="5" fill="#E2735C"/>
+              <circle cx="68" cy="10" r="5" fill="#E2735C"/>`;
+  }
+  svg.innerHTML = pot + plant;
+}
+
+/* ===================== 感測器共用工具 ===================== */
+let wristSensorActive = false, elbowSensorActive = false;
+let wristMode = 'sensor', elbowMode = 'sensor';
+let wristBaseline = 0, elbowBaseline = 0;
+let wristAngle = 0;   // -90..90 顯示角度
+let elbowExtend = 0;  // 0..1 伸展程度
+
+function needsIOSPermission(){
+  return typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function';
+}
+
+let wristEventReceived = false;
+async function enableWristSensor(){
+  document.getElementById('wristStatus').textContent = '請求感測器授權中…';
+  document.getElementById('wristTimeoutWarning').style.display = 'none';
+  wristEventReceived = false;
+  try{
+    if(needsIOSPermission()){
+      const p = await DeviceOrientationEvent.requestPermission();
+      if(p !== 'granted'){ document.getElementById('wristStatus').textContent = '授權未通過，改用手動模式練習吧'; setWristMode('manual'); return; }
+    }
+    window.addEventListener('deviceorientation', onWristOrientation);
+    wristSensorActive = true;
+    document.getElementById('wristEnableBtn').textContent = '感測器已啟用 ✓';
+    document.getElementById('wristEnableBtn').disabled = true;
+    document.getElementById('wristStatus').textContent = '慢慢轉動手腕，讓指針進入亮色區域';
+    setTimeout(()=>{
+      if(!wristEventReceived){
+        document.getElementById('wristTimeoutWarning').style.display = 'block';
+        document.getElementById('wristDebug').textContent = '尚未收到感測器資料（events: 0）';
+      }
+    }, 3000);
+  }catch(e){
+    document.getElementById('wristStatus').textContent = '此裝置不支援感測器，改用手動模式練習吧';
+    setWristMode('manual');
+  }
+}
+function onWristOrientation(e){
+  wristEventReceived = true;
+  document.getElementById('wristTimeoutWarning').style.display = 'none';
+  if(wristMode !== 'sensor') return;
+  const gamma = e.gamma;
+  document.getElementById('wristDebug').textContent = (gamma===null||gamma===undefined) ? '收到事件，但角度值是 null（此瀏覽器可能不支援）' : `原始角度 gamma: ${gamma.toFixed(1)}°　校正後: ${(gamma-wristBaseline).toFixed(1)}°`;
+  wristAngle = clamp((gamma||0) - wristBaseline, -90, 90);
+  drawWristDial();
+  evaluateWristZone();
+}
+
+let elbowEventReceived = false;
+async function enableElbowSensor(){
+  document.getElementById('elbowStatus').textContent = '請求感測器授權中…';
+  document.getElementById('elbowTimeoutWarning').style.display = 'none';
+  elbowEventReceived = false;
+  try{
+    if(needsIOSPermission()){
+      const p = await DeviceOrientationEvent.requestPermission();
+      if(p !== 'granted'){ document.getElementById('elbowStatus').textContent = '授權未通過，改用手動模式練習吧'; setElbowMode('manual'); return; }
+    }
+    window.addEventListener('deviceorientation', onElbowOrientation);
+    elbowSensorActive = true;
+    document.getElementById('elbowEnableBtn').textContent = '感測器已啟用 ✓';
+    document.getElementById('elbowEnableBtn').disabled = true;
+    document.getElementById('elbowStatus').textContent = '先按「校正起始點」，再慢慢向前伸直手臂';
+    setTimeout(()=>{
+      if(!elbowEventReceived){
+        document.getElementById('elbowTimeoutWarning').style.display = 'block';
+        document.getElementById('elbowDebug').textContent = '尚未收到感測器資料（events: 0）';
+      }
+    }, 3000);
+  }catch(e){
+    document.getElementById('elbowStatus').textContent = '此裝置不支援感測器，改用手動模式練習吧';
+    setElbowMode('manual');
+  }
+}
+function onElbowOrientation(e){
+  elbowEventReceived = true;
+  document.getElementById('elbowTimeoutWarning').style.display = 'none';
+  if(elbowMode !== 'sensor') return;
+  const beta = e.beta;
+  const delta = (beta===null||beta===undefined) ? 0 : Math.abs(beta - elbowBaseline);
+  document.getElementById('elbowDebug').textContent = (beta===null||beta===undefined) ? '收到事件，但角度值是 null（此瀏覽器可能不支援）' : `原始角度 beta: ${beta.toFixed(1)}°　與基準差: ${delta.toFixed(1)}°`;
+  elbowExtend = clamp(delta / 35, 0, 1); // 35度視為完全伸展，較容易達成
+  drawElbowSvg(elbowExtend);
+  evaluateElbowZone();
+}
+
+function calibrate(which){
+  if(which==='wrist'){
+    // 取得目前一次性讀值作為新的基準
+    const handler = (e)=>{ wristBaseline = e.gamma||0; window.removeEventListener('deviceorientation', handler); document.getElementById('wristStatus').textContent = '校正完成，開始練習吧'; };
+    window.addEventListener('deviceorientation', handler);
+    setTimeout(()=>window.removeEventListener('deviceorientation', handler), 500);
+  } else if(which==='elbow'){
+    const handler = (e)=>{ elbowBaseline = e.beta||0; window.removeEventListener('deviceorientation', handler); document.getElementById('elbowStatus').textContent = '校正完成，慢慢伸直手臂試試'; };
+    window.addEventListener('deviceorientation', handler);
+    setTimeout(()=>window.removeEventListener('deviceorientation', handler), 500);
+  }
+}
+function stopAllSensors(){
+  window.removeEventListener('deviceorientation', onWristOrientation);
+  window.removeEventListener('deviceorientation', onElbowOrientation);
+}
+function clamp(v,min,max){ return Math.max(min, Math.min(max,v)); }
+
+/* ===================== 手腕轉動模式切換與繪圖 ===================== */
+function setWristMode(mode){
+  wristMode = mode;
+  document.getElementById('wristModeSensor').classList.toggle('active', mode==='sensor');
+  document.getElementById('wristModeManual').classList.toggle('active', mode==='manual');
+  document.getElementById('wristPermNote').style.display = mode==='sensor' ? 'block' : 'none';
+  document.getElementById('wristEnableBtn').style.display = mode==='sensor' ? 'inline-block' : 'none';
+  document.getElementById('wristStatus').textContent = mode==='manual' ? '用手指拖曳指針，模擬手腕轉動' : '請先按下方按鈕啟用感測器';
+}
+function drawWristDial(){
+  const svg = document.getElementById('wristDialSvg');
+  const cx=120, cy=120, r=95;
+  const leftZone = arcPath(cx,cy,r, 215, 235); // 左側目標區（對應 wristAngle 約 -55~-35）
+  const rightZone = arcPath(cx,cy,r, -55, -35); // 右側目標區（對應 wristAngle 約 35~55）
+  const angleRad = (wristAngle-90) * Math.PI/180;
+  const nx = cx + r*0.8*Math.cos(angleRad);
+  const ny = cy + r*0.8*Math.sin(angleRad);
+  svg.innerHTML = `
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="#F1F5F0" stroke="#DDE7DD" stroke-width="10"/>
+    <path d="${leftZone}" stroke="#E3A857" stroke-width="14" fill="none" stroke-linecap="round" opacity="0.85"/>
+    <path d="${rightZone}" stroke="#E3A857" stroke-width="14" fill="none" stroke-linecap="round" opacity="0.85"/>
+    <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#1F3A34" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="${cx}" cy="${cy}" r="9" fill="#1F3A34"/>
+  `;
+}
+function arcPath(cx,cy,r,startDeg,endDeg){
+  const s = polar(cx,cy,r,startDeg), e = polar(cx,cy,r,endDeg);
+  const large = (endDeg-startDeg) <= 180 ? 0 : 1;
+  return `M ${s.x} ${s.y} A ${r} ${r} 0 ${large} 1 ${e.x} ${e.y}`;
+}
+function polar(cx,cy,r,deg){ const rad = deg*Math.PI/180; return { x: cx+r*Math.cos(rad), y: cy+r*Math.sin(rad) }; }
+
+let wristZoneState = 'neutral';
+function evaluateWristZone(){
+  const a = wristAngle;
+  let zone = 'neutral';
+  if(a <= -35 || a >= 35) zone = 'far';
+  else if(Math.abs(a) < 12) zone = 'neutral';
+  if(zone==='far' && wristZoneState==='neutral'){
+    wristZoneState = 'far';
+  } else if(zone==='neutral' && wristZoneState==='far'){
+    wristZoneState = 'neutral';
+    completeRep('wrist');
+  }
+}
+// 手動模式：拖曳指針
+(function setupWristDrag(){
+  const wrap = document.querySelector('#wristPanel .dial-wrap');
+  let dragging=false;
+  function pointFromEvent(ev){
+    const rect = wrap.getBoundingClientRect();
+    const cx = rect.left+rect.width/2, cy = rect.top+rect.height/2;
+    const t = ev.touches ? ev.touches[0] : ev;
+    const dx = t.clientX-cx, dy = t.clientY-cy;
+    let deg = Math.atan2(dy,dx)*180/Math.PI + 90;
+    if(deg>180) deg-=360; if(deg<-180) deg+=360;
+    wristAngle = clamp(deg,-90,90);
+    drawWristDial();
+    evaluateWristZone();
+  }
+  wrap.addEventListener('touchstart',(e)=>{ if(wristMode!=='manual') return; dragging=true; pointFromEvent(e); }, {passive:true});
+  wrap.addEventListener('touchmove',(e)=>{ if(wristMode!=='manual'||!dragging) return; pointFromEvent(e); }, {passive:true});
+  wrap.addEventListener('touchend',()=>{ dragging=false; });
+  wrap.addEventListener('mousedown',(e)=>{ if(wristMode!=='manual') return; dragging=true; pointFromEvent(e); });
+  window.addEventListener('mousemove',(e)=>{ if(wristMode!=='manual'||!dragging) return; pointFromEvent(e); });
+  window.addEventListener('mouseup',()=>{ dragging=false; });
+})();
+function updateWristUI(){
+  document.getElementById('wristReps').textContent = sessionReps.wrist;
+  document.getElementById('wristTarget').textContent = progress.targets.wrist;
+}
+
+/* ===================== 抓握力（雙指捏合） ===================== */
+let gripStartDist = null, gripState = 'open';
+(function setupGrip(){
+  const el = document.getElementById('gripVisual');
+  function dist(t0,t1){ return Math.hypot(t1.clientX-t0.clientX, t1.clientY-t0.clientY); }
+  el.addEventListener('touchstart',(e)=>{
+    if(e.touches.length>=2){ gripStartDist = dist(e.touches[0], e.touches[1]); }
+  }, {passive:true});
+  el.addEventListener('touchmove',(e)=>{
+    if(e.touches.length>=2 && gripStartDist){
+      const d = dist(e.touches[0], e.touches[1]);
+      let squeeze = clamp(1 - (d/gripStartDist), 0, 1); // 距離變小 => squeeze變大
+      squeeze = clamp(squeeze*2.2, 0, 1);
+      renderGripSqueeze(squeeze);
+      evaluateGrip(squeeze);
+    }
+  }, {passive:true});
+  el.addEventListener('touchend',(e)=>{
+    if(e.touches.length<2){ gripStartDist=null; renderGripSqueeze(0); evaluateGrip(0); }
+  });
+})();
+function renderGripSqueeze(squeeze){
+  const scale = 1 - squeeze*0.35;
+  document.getElementById('gripVisual').style.transform = `scale(${scale})`;
+  document.getElementById('gripBar').style.width = (squeeze*100)+'%';
+  document.getElementById('gripVisual').querySelector('span').textContent = squeeze>0.6 ? '✊' : '🖐️';
+}
+function evaluateGrip(squeeze){
+  if(squeeze>0.75 && gripState==='open'){
+    gripState = 'closed';
+    document.getElementById('gripStatus').textContent = '很好，慢慢放開';
+  } else if(squeeze<0.15 && gripState==='closed'){
+    gripState = 'open';
+    document.getElementById('gripStatus').textContent = '很好，再捏一次';
+    completeRep('grip');
+  }
+}
+function updateGripUI(){
+  document.getElementById('gripReps').textContent = sessionReps.grip;
+  document.getElementById('gripTarget').textContent = progress.targets.grip;
+  document.getElementById('gripStatus').textContent = '請用兩指在球上捏合看看';
+}
+
+/* ===================== 手肘伸展 ===================== */
+function setElbowMode(mode){
+  elbowMode = mode;
+  document.getElementById('elbowModeSensor').classList.toggle('active', mode==='sensor');
+  document.getElementById('elbowModeManual').classList.toggle('active', mode==='manual');
+  document.getElementById('elbowPermNote').style.display = mode==='sensor' ? 'block' : 'none';
+  document.getElementById('elbowEnableBtn').style.display = mode==='sensor' ? 'inline-block' : 'none';
+  document.getElementById('elbowStatus').textContent = mode==='manual' ? '用手指拖曳箭頭，模擬手臂伸展' : '請先按下方按鈕啟用感測器';
+}
+function drawElbowSvg(extend){
+  const svg = document.getElementById('elbowSvg');
+  const startX = 30, y = 150;
+  const armLen = 90 + extend*110;
+  const endX = startX + armLen;
+  const targetX = 230;
+  svg.innerHTML = `
+    <line x1="0" y1="${y+10}" x2="260" y2="${y+10}" stroke="#DDE7DD" stroke-width="2"/>
+    <line x1="${targetX}" y1="60" x2="${targetX}" y2="${y+10}" stroke="#E3A857" stroke-width="4" stroke-dasharray="6,6"/>
+    <circle cx="${startX}" cy="${y}" r="16" fill="#4C7A63"/>
+    <line x1="${startX}" y1="${y}" x2="${endX}" y2="${y}" stroke="#6FA287" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="${endX}" cy="${y}" r="12" fill="#1F3A34"/>
+    <text x="${targetX-10}" y="50" font-size="13" fill="#C98A38" font-family="sans-serif">目標</text>
+  `;
+}
+let elbowZoneState = 'flexed';
+function evaluateElbowZone(){
+  if(elbowExtend>0.85 && elbowZoneState==='flexed'){
+    elbowZoneState = 'extended';
+    document.getElementById('elbowStatus').textContent = '很好，慢慢收回胸前';
+  } else if(elbowExtend<0.15 && elbowZoneState==='extended'){
+    elbowZoneState = 'flexed';
+    document.getElementById('elbowStatus').textContent = '很好，再伸一次';
+    completeRep('elbow');
+  }
+}
+(function setupElbowDrag(){
+  const wrap = document.querySelector('#elbowPanel .elbow-visual');
+  let dragging=false;
+  function pointFromEvent(ev){
+    const rect = wrap.getBoundingClientRect();
+    const t = ev.touches ? ev.touches[0] : ev;
+    const frac = clamp((t.clientX-rect.left-30)/200, 0, 1);
+    elbowExtend = frac;
+    drawElbowSvg(elbowExtend);
+    evaluateElbowZone();
+  }
+  wrap.addEventListener('touchstart',(e)=>{ if(elbowMode!=='manual') return; dragging=true; pointFromEvent(e); }, {passive:true});
+  wrap.addEventListener('touchmove',(e)=>{ if(elbowMode!=='manual'||!dragging) return; pointFromEvent(e); }, {passive:true});
+  wrap.addEventListener('touchend',()=>{ dragging=false; });
+  wrap.addEventListener('mousedown',(e)=>{ if(elbowMode!=='manual') return; dragging=true; pointFromEvent(e); });
+  window.addEventListener('mousemove',(e)=>{ if(elbowMode!=='manual'||!dragging) return; pointFromEvent(e); });
+  window.addEventListener('mouseup',()=>{ dragging=false; });
+})();
+function updateElbowUI(){
+  document.getElementById('elbowReps').textContent = sessionReps.elbow;
+  document.getElementById('elbowTarget').textContent = progress.targets.elbow;
+}
+
+/* ===================== 共用：完成一次 / 完成一輪 ===================== */
+function playChime(){
+  if(!progress.sound) return;
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.type='sine'; o.frequency.value=660;
+    o.connect(g); g.connect(ctx.destination);
+    g.gain.setValueAtTime(0.15, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.35);
+    o.start(); o.stop(ctx.currentTime+0.35);
+  }catch(e){}
+}
+function completeRep(name){
+  sessionReps[name] += 1;
+  if(name==='wrist') updateWristUI();
+  if(name==='grip') updateGripUI();
+  if(name==='elbow') updateElbowUI();
+  playChime();
+
+  const tk = todayKey();
+  if(!progress.today[tk]) progress.today[tk] = {wrist:0,grip:0,elbow:0};
+  progress.today[tk][name] += 1;
+  progress.totalReps += 1;
+  saveProgress();
+
+  if(sessionReps[name] >= progress.targets[name]){
+    finishSession(name);
+  }
+}
+function finishSession(name){
+  stopAllSensors();
+  const label = {wrist:'手腕轉動', grip:'手指抓握力', elbow:'手肘伸展'}[name];
+  document.getElementById('doneSummary').textContent = `${label} 完成了 ${sessionReps[name]} 次，今天累積 ${(progress.today[todayKey()][name]||0)} 次！`;
+  document.getElementById('doneAgainBtn').onclick = ()=>{ enterExercise(name); showView('view-'+name); };
+  showView('view-done');
+}
+
+/* ===================== 設定面板 ===================== */
+function openSettings(){ document.getElementById('settingsBackdrop').classList.add('active'); }
+function closeSettings(){ document.getElementById('settingsBackdrop').classList.remove('active'); saveProgress(); }
+function changeTarget(name, delta){
+  progress.targets[name] = clamp(progress.targets[name]+delta, 5, 30);
+  document.getElementById('targetVal_'+name).textContent = progress.targets[name];
+}
+function toggleLargeText(){
+  progress.largeText = !progress.largeText;
+  document.body.classList.toggle('large-text', progress.largeText);
+  document.getElementById('largeTextToggle').classList.toggle('on', progress.largeText);
+}
+function toggleSound(){
+  progress.sound = !progress.sound;
+  document.getElementById('soundToggle').classList.toggle('on', progress.sound);
+}
+function applySettingsToUI(){
+  document.getElementById('targetVal_wrist').textContent = progress.targets.wrist;
+  document.getElementById('targetVal_grip').textContent = progress.targets.grip;
+  document.getElementById('targetVal_elbow').textContent = progress.targets.elbow;
+  document.body.classList.toggle('large-text', progress.largeText);
+  document.getElementById('largeTextToggle').classList.toggle('on', progress.largeText);
+  document.getElementById('soundToggle').classList.toggle('on', progress.sound);
+}
+
+/* ===================== 初始化 ===================== */
+loadProgress();
+drawWristDial();
+drawElbowSvg(0);
+</script>
+</body>
+</html>
